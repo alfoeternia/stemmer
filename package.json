@@ -6,6 +6,10 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "dependencies": {
+    "porter-stemmer": "*",
+    "cli-table": "*"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/alfoeternia/stemmer"
