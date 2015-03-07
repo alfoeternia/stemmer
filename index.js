@@ -1,5 +1,5 @@
 /**
- * use of Porter Stemmer in the Cranfield collection.
+ * Use of Porter Stemmer in the Cranfield collection.
  * Stopwords are also removed.
  *
  * @author Alexis Fouche
@@ -10,10 +10,10 @@
 
 "use strict";
 
-var fs 			= require('fs');
-var Table 		= require('cli-table');
-var stemmer 	= require('porter-stemmer').stemmer;
-var stopwords 	= [];
+var fs			= require('fs');
+var Table		= require('cli-table');
+var stemmer		= require('porter-stemmer').stemmer;
+var stopwords	= [];
 
 // Read stopwords
 fs.readFile('./stopwords.txt', { encoding: 'utf8', flag: 'r' }, function (err, data) {
