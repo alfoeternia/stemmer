@@ -10,23 +10,32 @@
 
 "use strict";
 
-var fs			= require('fs');
-var Table		= require('cli-table');
-var stemmer		= require('porter-stemmer').stemmer;
-var stopwords	= [];
+var fs          = require('fs');
+var Table       = require('cli-table');
+var stemmer     = require('porter-stemmer').stemmer;
+var stopwords   = [];
 
 // Read stopwords
+// from: http://www.ranks.nl/stopwords
 fs.readFile('./stopwords.txt', { encoding: 'utf8', flag: 'r' }, function (err, data) {
 	if (err) throw err;
 	else stopwords = data.split('\n');
 
 	// Read documents
+	// from: http://ir.dcs.gla.ac.uk/resources/test_collections/cran/
 	fs.readFile('./cran.all.1400', { encoding: 'utf8', flag: 'r' }, function (err, data) {
 		if (err) throw err;
 		else processCollection(data);
 	});
 });
 
+
+/*
+ * Reads the collection file (data) and sends the text of the article
+ * to the processDocument() funtion
+ *
+ * @param data The content of the collection file
+ */
 function processCollection(data) {
 	var lines = data.split('\n');
 	var lineIndex = 0;
@@ -51,22 +60,44 @@ function processCollection(data) {
 	}
 }
 
+/*
+ * Reads the text of each article from "idStart" to "idStop",
+ * then stem each word to a list of terms, and finally
+ * calculate the term frequency defined as the following:
+ * (# of occurences of a unique term) / (# of terms)
+ *
+ * @param id The document id
+ * @param lines The lines of the collection
+ * @param idStart The beginning line of the text for document "id"
+ * @param idStop The end line of the text
+ */
 function processDocument(id, lines, idStart, idStop) {
 
 	console.log('================ Document ' + id);
 
-	var terms = [], termOcc = {};
+	// - terms is an 1-dimension array that contains the stemmed words,
+	//   expected the stopwords.
+	// - termsOcc is an associative array ({'a': 1, 'b': 2}) that contains
+	//   unique terms along with its number of occurences.
+	var terms   = []
+	var termsOcc = {};
 
+	// Go through every line of the text
 	for(var i = idStart; i < idStop; i++) {
+
 		var line = lines[i].toLowerCase();
 
 		// Split the line in words by selecting only "group of characters"
 		// using a regular expression, then filter the returned words
-		// by removing those of one character or in the stopwords list
+		// by removing those of one character or in the stopwords list.
+		//
+		// The \W notation (uppercase W) means [^A-Za-z0-9_], which is every
+		// non-word character that I use for delimiter.
 		var words = line.split(/\W+/).filter(function(w) {
 			return w.length > 1 && stopwords.indexOf(w) == -1;
 		});
 
+		// Push the list of terms of the lines to the list of terms of the text
 		Array.prototype.push.apply(terms, words.map(stemmer));
 	}
 
@@ -74,11 +105,12 @@ function processDocument(id, lines, idStart, idStop) {
 	terms.sort();
 
 	// Compute occurences
-	for(var i = 0; i < terms.length; i++) termOcc[terms[i]] = (termOcc[terms[i]] == undefined) ? 1 : termOcc[terms[i]] + 1;
+	for(var i = 0; i < terms.length; i++) termsOcc[terms[i]] = (termsOcc[terms[i]] == undefined) ? 1 : termsOcc[terms[i]] + 1;
+	console.log('Number of unique terms: ' + Object.keys(termsOcc).length);
 
-	// Compute frequencies
+	// Compute frequencies and display the table
 	var result = new Table({ head: ['Term', 'Occurences', 'Frequency'], colWidths: [25, 15, 30] });
-	for(var index in termOcc) result.push([ index, termOcc[index], termOcc[index] / Object.keys(termOcc).length]);
+	for(var index in termsOcc) result.push([ index, termsOcc[index], termsOcc[index] / Object.keys(termsOcc).length]);
 
 	console.log(result.toString());
 	console.log('============ End Document ' + id);
