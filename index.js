@@ -11,9 +11,16 @@
 "use strict";
 
 var fs          = require('fs');
+var util        = require('util');
 var Table       = require('cli-table');
 var stemmer     = require('porter-stemmer').stemmer;
+var jsep        = require("./jsep");
 var stopwords   = [];
+
+// JSEP configuration
+jsep.addUnaryOp("NOT");
+jsep.addBinaryOp("AND", 0);
+jsep.addBinaryOp("OR", 0);
 
 // Read stopwords
 // from: http://www.ranks.nl/stopwords
@@ -28,6 +35,22 @@ fs.readFile('./stopwords.txt', { encoding: 'utf8', flag: 'r' }, function (err, d
 		else processCollection(data);
 	});
 });
+
+// Reads queries
+process.stdin.setEncoding('utf8');
+process.stdin.on('readable', function() {
+  var chunk = process.stdin.read();
+  if (chunk !== null) {
+    processQuery(chunk.toString().trim());
+  }
+});
+
+
+
+function processQuery(query) {
+	var parse_tree = jsep(query);
+	console.log(util.inspect(parse_tree, {depth: 10, colors: true}));
+}
 
 
 /*
@@ -73,7 +96,7 @@ function processCollection(data) {
  */
 function processDocument(id, lines, idStart, idStop) {
 
-	console.log('================ Document ' + id);
+	//console.log('================ Document ' + id);
 
 	// - terms is an 1-dimension array that contains the stemmed words,
 	//   expected the stopwords.
@@ -106,13 +129,13 @@ function processDocument(id, lines, idStart, idStop) {
 
 	// Compute occurences
 	for(var i = 0; i < terms.length; i++) termsOcc[terms[i]] = (termsOcc[terms[i]] == undefined) ? 1 : termsOcc[terms[i]] + 1;
-	console.log('Number of unique terms: ' + Object.keys(termsOcc).length);
+	//console.log('Number of unique terms: ' + Object.keys(termsOcc).length);
 
 	// Compute frequencies and display the table
 	var result = new Table({ head: ['Term', 'Occurences', 'Frequency'], colWidths: [25, 15, 30] });
 	for(var index in termsOcc) result.push([ index, termsOcc[index], termsOcc[index] / Object.keys(termsOcc).length]);
 
-	console.log(result.toString());
-	console.log('============ End Document ' + id);
-
+	//console.log(result.toString());
+	//console.log('============ End Document ' + id);
 }
+

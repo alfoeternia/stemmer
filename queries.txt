@@ -1,0 +1,6 @@
+vary
+vary AND user
+panama OR NOT user
+panama OR NOT user AND vary
+panama OR NOT ( user AND vary )
+panama OR NOT ( is AND the )
