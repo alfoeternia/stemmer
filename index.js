@@ -16,11 +16,13 @@ var Table       = require('cli-table');
 var stemmer     = require('porter-stemmer').stemmer;
 var jsep        = require("./jsep");
 var stopwords   = [];
+var invIndex	= {};
 
 // JSEP configuration
 jsep.addUnaryOp("NOT");
 jsep.addBinaryOp("AND", 0);
 jsep.addBinaryOp("OR", 0);
+process.stdin.setEncoding('utf8');
 
 // Read stopwords
 // from: http://www.ranks.nl/stopwords
@@ -35,23 +37,6 @@ fs.readFile('./stopwords.txt', { encoding: 'utf8', flag: 'r' }, function (err, d
 		else processCollection(data);
 	});
 });
-
-// Reads queries
-process.stdin.setEncoding('utf8');
-process.stdin.on('readable', function() {
-  var chunk = process.stdin.read();
-  if (chunk !== null) {
-    processQuery(chunk.toString().trim());
-  }
-});
-
-
-
-function processQuery(query) {
-	var parse_tree = jsep(query);
-	console.log(util.inspect(parse_tree, {depth: 10, colors: true}));
-}
-
 
 /*
  * Reads the collection file (data) and sends the text of the article
@@ -81,6 +66,10 @@ function processCollection(data) {
 		// Process document
 		processDocument(id, lines, idStart, idStop);
 	}
+
+	// Sort the inverted index and display it
+	invIndex = sortObject(invIndex);
+	console.log(util.inspect(sortObject(invIndex), {depth: 10}));
 }
 
 /*
@@ -128,14 +117,94 @@ function processDocument(id, lines, idStart, idStop) {
 	terms.sort();
 
 	// Compute occurences
-	for(var i = 0; i < terms.length; i++) termsOcc[terms[i]] = (termsOcc[terms[i]] == undefined) ? 1 : termsOcc[terms[i]] + 1;
-	//console.log('Number of unique terms: ' + Object.keys(termsOcc).length);
+	for(var i = 0; i < terms.length; i++)
+		termsOcc[terms[i]] = (termsOcc[terms[i]] == undefined) ? 1 : termsOcc[terms[i]] + 1;
+
+	// Add term to inversed index
+	for(var index in termsOcc) addTermToInvIndex(index, id, termsOcc[index]);
+	
 
 	// Compute frequencies and display the table
-	var result = new Table({ head: ['Term', 'Occurences', 'Frequency'], colWidths: [25, 15, 30] });
-	for(var index in termsOcc) result.push([ index, termsOcc[index], termsOcc[index] / Object.keys(termsOcc).length]);
-
+	// NB: Disabled for assignment 2.
+	//
+	//var result = new Table({ head: ['Term', 'Occurences', 'Frequency'], colWidths: [25, 15, 30] });
+	//for(var index in termsOcc) result.push([ index, termsOcc[index], termsOcc[index] / Object.keys(termsOcc).length]);
+	//console.log('Number of unique terms: ' + Object.keys(termsOcc).length);
 	//console.log(result.toString());
 	//console.log('============ End Document ' + id);
 }
 
+/*
+ * Adds a term to the inversed index
+ *
+ * @param term The term
+ * @param document The document id where the term appears
+ * @param freq Number of occurences of the word (optional)
+ */
+function addTermToInvIndex(term, doc, freq) {
+
+	freq = freq || 1;
+
+	if(invIndex.hasOwnProperty(term)) {
+		// Update document frequency
+		invIndex[term][0] += freq;
+
+		// Update document id & term frequency
+		// NB:  Documents are processed in order, no need to 
+		//      insert the docId at the right location
+		invIndex[term][1].push([doc, freq]);
+
+		// NB2: We insert all the unique terms of a document, so
+		//      there is no need to check if a term already appeared
+		//      previously in the same document. However, here is the
+		//      code if needed.
+		/*for(var i in invIndex[term][1]) {
+			if(invIndex[term][1][i][0] == doc) return invIndex[term][1][i][1] += freq;
+		}*/
+
+	} else {
+		// Term never inserted, we just insert it...
+		invIndex[term] = [1, [[doc, freq]]];
+	}
+
+}
+
+/*
+ * Reads queries
+ * NB: For next assignement...
+
+process.stdin.on('readable', function() {
+  var chunk = process.stdin.read();
+  if (chunk !== null) {
+    processQuery(chunk.toString().trim());
+  }
+});
+function processQuery(query) {
+	var parse_tree = jsep(query);
+	console.log(util.inspect(parse_tree, {depth: 10, colors: true}));
+}*/
+
+/*
+ * Sort the properties of an Object.
+ * Useful when an Object is used as an associative array (hashmap).
+ * Downloaded from: http://stackoverflow.com/a/1359808
+ *
+ * @param o The object to sort
+ */
+function sortObject(o) {
+    var sorted = {},
+    key, a = [];
+
+    for (key in o) {
+    	if (o.hasOwnProperty(key)) {
+    		a.push(key);
+    	}
+    }
+
+    a.sort();
+
+    for (key = 0; key < a.length; key++) {
+    	sorted[a[key]] = o[a[key]];
+    }
+    return sorted;
+}
