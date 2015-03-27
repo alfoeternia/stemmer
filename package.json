@@ -1,14 +1,15 @@
 {
-  "name": "cs769-assignment2",
-  "version": "1.0.0",
-  "description": "Usage of Porter Stemmer in Javascript to process Cranfield collection and remove the stopwords",
-  "main": "main.js",
+  "name": "cs769-search-engine",
+  "version": "1.0.3",
+  "description": "Usage of Porter Stemmer in Javascript to implement a search engine over the Cranfield collection",
+  "main": "search.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
     "porter-stemmer": "*",
-    "cli-table": "*"
+    "cli-table": "*",
+    "commander": "*"
   },
   "repository": {
     "type": "git",
@@ -17,8 +18,7 @@
   "keywords": [
     "stemmer",
     "porter",
-    "stemmer",
-    "stopword"
+    "stemmer"
   ],
   "author": "Alexis Fouche",
   "license": "ISC",

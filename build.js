@@ -1,38 +1,46 @@
-/**
- * Use of Porter Stemmer in the Cranfield collection.
- * Stopwords are also removed.
+#!/usr/bin/env node
+/*
+ * Use of Porter Stemmer in the Cranfield collection
+ * to generate a inverted index. Stopwords are removed.
  *
  * @author Alexis Fouche
- * @email contact@alexisfouche.net
  * @repository https://github.com/alfoeternia/stemmer
- * @version 1.0.0
+ * @version 1.0.3
  */
 
 "use strict";
 
 var fs          = require('fs');
 var util        = require('util');
-var Table       = require('cli-table');
+var program     = require('commander');
+var table       = require('cli-table');
 var stemmer     = require('porter-stemmer').stemmer;
-var jsep        = require("./jsep");
+var tools       = require('./tools');
 var stopwords   = [];
-var invIndex	= {};
+var invIndex    = {};
 
-// JSEP configuration
-jsep.addUnaryOp("NOT");
-jsep.addBinaryOp("AND", 0);
-jsep.addBinaryOp("OR", 0);
-process.stdin.setEncoding('utf8');
+// Configure application
+program
+  .version('1.0.3')
+  .option('-j, --json', 'output JSON instead of a CLI formatted table')
+  .option('-s, --sort', 'sort inverted index (default: no)')
+  .option('-c, --collection <file>', 'specify a custom collection file')
+  .option('-w, --stop-words <file>', 'specify a custom stopwords file')
+  .parse(process.argv);
+
+var collectionFile = program.collection || './docs/cran.all.1400';
+var stopwordsFile = program.stopWords || './docs/stopwords.txt';
+
 
 // Read stopwords
 // from: http://www.ranks.nl/stopwords
-fs.readFile('./stopwords.txt', { encoding: 'utf8', flag: 'r' }, function (err, data) {
+fs.readFile(stopwordsFile, { encoding: 'utf8', flag: 'r' }, function (err, data) {
 	if (err) throw err;
 	else stopwords = data.split('\n');
 
 	// Read documents
 	// from: http://ir.dcs.gla.ac.uk/resources/test_collections/cran/
-	fs.readFile('./cran.all.1400', { encoding: 'utf8', flag: 'r' }, function (err, data) {
+	fs.readFile(collectionFile, { encoding: 'utf8', flag: 'r' }, function (err, data) {
 		if (err) throw err;
 		else processCollection(data);
 	});
@@ -67,9 +75,23 @@ function processCollection(data) {
 		processDocument(id, lines, idStart, idStop);
 	}
 
-	// Sort the inverted index and display it
-	invIndex = sortObject(invIndex);
-	console.log(util.inspect(sortObject(invIndex), {depth: 10}));
+	// Sort the inverted index if specified
+	if(program.sort) invIndex = tools.sortObject(invIndex);
+
+	// Output JSON or dump array
+	if(program.json) {
+		console.log(JSON.stringify(invIndex));
+	}
+	else {
+		// Use cli-table library to display a formated table
+		var result = new table({ head: ['Term', 'Occurences', 'Documents'], colWidths: [25, 15, 50] });
+		for(var term in invIndex) result.push([ 
+			term,
+			invIndex[term][0],
+			tools.removeFreqFromDocList(invIndex[term][1])]);
+
+		console.log(result.toString());
+	}
 }
 
 /*
@@ -122,16 +144,6 @@ function processDocument(id, lines, idStart, idStop) {
 
 	// Add term to inversed index
 	for(var index in termsOcc) addTermToInvIndex(index, id, termsOcc[index]);
-	
-
-	// Compute frequencies and display the table
-	// NB: Disabled for assignment 2.
-	//
-	//var result = new Table({ head: ['Term', 'Occurences', 'Frequency'], colWidths: [25, 15, 30] });
-	//for(var index in termsOcc) result.push([ index, termsOcc[index], termsOcc[index] / Object.keys(termsOcc).length]);
-	//console.log('Number of unique terms: ' + Object.keys(termsOcc).length);
-	//console.log(result.toString());
-	//console.log('============ End Document ' + id);
 }
 
 /*
@@ -167,44 +179,4 @@ function addTermToInvIndex(term, doc, freq) {
 		invIndex[term] = [1, [[doc, freq]]];
 	}
 
-}
-
-/*
- * Reads queries
- * NB: For next assignement...
-
-process.stdin.on('readable', function() {
-  var chunk = process.stdin.read();
-  if (chunk !== null) {
-    processQuery(chunk.toString().trim());
-  }
-});
-function processQuery(query) {
-	var parse_tree = jsep(query);
-	console.log(util.inspect(parse_tree, {depth: 10, colors: true}));
-}*/
-
-/*
- * Sort the properties of an Object.
- * Useful when an Object is used as an associative array (hashmap).
- * Downloaded from: http://stackoverflow.com/a/1359808
- *
- * @param o The object to sort
- */
-function sortObject(o) {
-    var sorted = {},
-    key, a = [];
-
-    for (key in o) {
-    	if (o.hasOwnProperty(key)) {
-    		a.push(key);
-    	}
-    }
-
-    a.sort();
-
-    for (key = 0; key < a.length; key++) {
-    	sorted[a[key]] = o[a[key]];
-    }
-    return sorted;
 }

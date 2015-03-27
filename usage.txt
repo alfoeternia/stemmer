@@ -1,0 +1,23 @@
+
+  Usage: build [options]
+
+  Options:
+
+    -h, --help               output usage information
+    -V, --version            output the version number
+    -j, --json               output JSON instead of a CLI formatted table
+    -s, --sort               sort inverted index (default: no)
+    -c, --collection <file>  specify a custom collection file
+    -w, --stop-words <file>  specify a custom stopwords file
+
+
+  Usage: search [options] <queries>
+
+  Options:
+
+    -h, --help          output usage information
+    -V, --version       output the version number
+    -b, --binary        use a binary query string (currently unused)
+    -i, --index <file>  specify a custom JSON-formatted inverted index file
+    -v, --verbose       enables verbose output
+
