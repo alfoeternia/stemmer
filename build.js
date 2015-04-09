@@ -18,6 +18,7 @@ var stemmer     = require('porter-stemmer').stemmer;
 var tools       = require('./tools');
 var stopwords   = [];
 var invIndex    = {};
+var wDs         = {};
 
 // Configure application
 program
@@ -90,8 +91,10 @@ function processCollection(data) {
 			invIndex[term][0],
 			tools.removeFreqFromDocList(invIndex[term][1])]);
 
-		console.log(result.toString());
+		//console.log(result.toString());
 	}
+
+	console.log(JSON.stringify(wDs));
 }
 
 /*
@@ -144,6 +147,13 @@ function processDocument(id, lines, idStart, idStop) {
 
 	// Add term to inversed index
 	for(var index in termsOcc) addTermToInvIndex(index, id, termsOcc[index]);
+
+	var wD = 0;
+	for(var index in termsOcc) {
+		wD += Math.pow(1 + Math.log(termsOcc[index]), 2);
+	}
+	wD = Math.sqrt(wD);
+	wDs[id] = wD;
 }
 
 /*

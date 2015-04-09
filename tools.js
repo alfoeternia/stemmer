@@ -70,17 +70,17 @@ function Tools() {
   }
 
   /*
-   * Returns documents id from a list composed of:
+   * Returns document ids from a list composed of:
    * [docId, Frequency]
    * 
-   * @param array The array to extract information from
+   * @param a The array to extract information from
    */
-  this.removeFreqFromDocList = function(array) {
+  this.removeFreqFromDocList = function(a) {
 
-    var docs = [];
-    array.forEach(function(i) { docs.push(i[0]); });
+    var d = [];
+    a.forEach(function(i) { d.push(i[0]); });
 
-    return docs;
+    return d;
   }
 
 
@@ -88,11 +88,11 @@ function Tools() {
    * Returns the documents list for a term
    *
    * @param term The term to look for
-   * @param index The inverted index
+   * @param idx The inverted index
    */
-  this.docsContainingTerm = function(term, index) {
+  this.docsContainingTerm = function(term, idx) {
 
-    if(index[term]) return this.removeFreqFromDocList(index[term][1]);
+    if(idx[term]) return this.removeFreqFromDocList(idx[term][1]);
     return [];
   }
 
