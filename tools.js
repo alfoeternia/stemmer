@@ -96,6 +96,15 @@ function Tools() {
     return [];
   }
 
+  /*
+   * Capitalize the first letter of each word
+   *
+   * @from http://bit.ly/1H8Xr4V
+   */
+  this.toTitleCase = function(str) {
+      return str.replace(/\w\S*/g, function(txt){return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();});
+  }
+
 }
 
 module.exports = new Tools();

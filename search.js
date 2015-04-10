@@ -13,6 +13,7 @@
 var fs          = require('fs');
 var util        = require('util');
 var program     = require('commander');
+var table       = require('cli-table');
 var stemmer     = require('porter-stemmer').stemmer;
 var parser      = require("./parser");
 var tools       = require('./tools');
@@ -30,8 +31,11 @@ program
 	.parse(process.argv);
 
 var indexFile = program.index || './docs/INV_FILE_HASH.json';
-var invertedIdx = require(indexFile);
-var wDs = require('./docs/wDs.json');
+var index = require(indexFile);
+var invertedIdx = index.index;
+var wDs = index.wDs;
+var docsInfo = index.docsInfo;
+//var wDs = require('./docs/wDs.json');
 var stopwordsFile = program.stopWords || './docs/stopwords.txt';
 var queriesFile = program.queriesFile || './docs/cran.qry';
 
@@ -123,10 +127,10 @@ function processQuery(id, lines, idStart, idStop) {
 
 	var score = 0;
 
-	// - terms is an 1-dimension array
+	// terms is an 1-dimension array
 	var terms   = []
 
-	// Go through every line of the text
+	// Go through every line of the query
 	for(var i = idStart; i < idStop; i++) {
 
 		var line = lines[i].toLowerCase();
@@ -141,8 +145,10 @@ function processQuery(id, lines, idStart, idStop) {
 			return w.length > 1 && stopwords.indexOf(w) == -1;
 		});
 
-		// Push the list of terms of the lines to the list of terms of the text
+		// Push the list of terms of the lines to the list of terms of the query
 		Array.prototype.push.apply(terms, words.map(stemmer));
+
+		console.log(tools.toTitleCase(line));
 	}
 
 
@@ -169,7 +175,7 @@ function processQuery(id, lines, idStart, idStop) {
 			}
 
 		} else {
-			//console.warn('  [WARN] Term not present in index');
+			//console.warn('  [WARN] Term not present in index:', t);
 		}
 
 		/*var docFreq = invertedIdx[t][1];
@@ -183,22 +189,52 @@ function processQuery(id, lines, idStart, idStop) {
 
 	wQ = Math.sqrt(wQ);
 
-
+	// Add results to sortable array
 	var sortable = [];
 	for (var i in docs)
-	      sortable.push([i, docs[i]])
-	//sortable.sort(function(a, b) {return b[1] - a[1]})
+	    sortable.push([i, docs[i]])
 
+	// Compute the final TF-IDF by dividing by wQ*wD
 	for (var i in sortable)
 	    sortable[i][1] *= 1.0/ (wQ * wDs[sortable[i][0]]);
 
-	//console.log(sortable);
+	// Sort by TF-IDF score
 	sortable.sort(function(a, b) {return b[1] - a[1]})
 
+	// Display results
+	var result = new table({ head: ['Doc Id', 'Title', 'Authors', 'Score'], colWidths: [8, 75, 20, 8] });
 	for(var i = 0; i < 30; i++) {
 		var doc = sortable[i];
-		//console.log('Doc', doc[0], '-> Score', doc[1]);
+		result.push([ 
+			doc[0],
+			tools.toTitleCase(docsInfo[doc[0]].title),
+			tools.toTitleCase(docsInfo[doc[0]].authors),
+			doc[1]]);
 	}
+	console.log(result.toString());
+
+	// Compute and display stats
+	var precision = 0;
+	var recall = 0;
+
+	for(var i = 0; sortable[i][1] > 0.40; i++) {
+		var doc = sortable[i];
+
+		for(var j = 0; j < queryExpectedResults[id].length; j++) {
+			if(queryExpectedResults[id][j][0] == doc[0])
+				precision++;
+		}
+	}
+
+	recall = precision / queryExpectedResults[id].length;
+	precision /= i;
+	var stats = new table();
+	stats.push(
+	    { 'Precision': precision }
+	  , { 'Recall': recall }
+	);
+	console.log(stats.toString());
+
 
 	//console.log(sortable);
 
@@ -227,20 +263,7 @@ function processQuery(id, lines, idStart, idStop) {
 		recalls[index] += recall;
 	}*/
 
-	var precision = 0;
-	var recall = 0;
-
-	for(var i = 0; sortable[i][1] > 0.40; i++) {
-		var doc = sortable[i];
-
-		for(var j = 0; j < queryExpectedResults[id].length; j++) {
-			if(queryExpectedResults[id][j][0] == doc[0])
-				precision++;
-		}
-	}
-
-	recall = precision / queryExpectedResults[id].length;
-	precision /= i;
+	
 
 	//console.log('Precision:', precision);
 	//console.log('Recall:', recall);

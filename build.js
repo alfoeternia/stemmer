@@ -19,6 +19,7 @@ var tools       = require('./tools');
 var stopwords   = [];
 var invIndex    = {};
 var wDs         = {};
+var docsInfo    = {};
 
 // Configure application
 program
@@ -64,6 +65,14 @@ function processCollection(data) {
 		while(lines[lineIndex].slice(0, 2) != '.I') lineIndex++;
 		var id = lines[lineIndex].split(' ')[1];
 
+		while(lines[lineIndex].slice(0, 2) != '.T') lineIndex++;
+		var titleIdxStart = lineIndex + 1;
+
+		while(lines[lineIndex].slice(0, 2) != '.A') lineIndex++;
+		var authors = lines[lineIndex + 1];
+		var title = "";
+		for(var i = titleIdxStart; i < lineIndex; i++) title += lines[i] + " ";
+
 		// Find the beginning of the text
 		while(lines[lineIndex].slice(0, 2) != '.W') lineIndex++;
 		var idStart = lineIndex + 1;
@@ -74,6 +83,8 @@ function processCollection(data) {
 
 		// Process document
 		processDocument(id, lines, idStart, idStop);
+
+		docsInfo[id] = {title: title, authors: (authors != '.B') ? authors : ''};
 	}
 
 	// Sort the inverted index if specified
@@ -81,7 +92,7 @@ function processCollection(data) {
 
 	// Output JSON or dump array
 	if(program.json) {
-		console.log(JSON.stringify(invIndex));
+		console.log(JSON.stringify({index: invIndex, wDs: wDs, docsInfo: docsInfo}));
 	}
 	else {
 		// Use cli-table library to display a formated table
@@ -91,10 +102,8 @@ function processCollection(data) {
 			invIndex[term][0],
 			tools.removeFreqFromDocList(invIndex[term][1])]);
 
-		//console.log(result.toString());
+		console.log(result.toString());
 	}
-
-	console.log(JSON.stringify(wDs));
 }
 
 /*
@@ -148,12 +157,12 @@ function processDocument(id, lines, idStart, idStop) {
 	// Add term to inversed index
 	for(var index in termsOcc) addTermToInvIndex(index, id, termsOcc[index]);
 
+	// Compute wD
 	var wD = 0;
 	for(var index in termsOcc) {
 		wD += Math.pow(1 + Math.log(termsOcc[index]), 2);
 	}
-	wD = Math.sqrt(wD);
-	wDs[id] = wD;
+	wDs[id] = Math.sqrt(wD);
 }
 
 /*
