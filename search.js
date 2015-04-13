@@ -100,13 +100,17 @@ var queries = program.args;
 function processQueriesFile(data) {
 	var lines = data.split('\n');
 	var lineIndex = 0;
+	var id = 0;
 
 	// While the entire file has not been processed
 	while(lineIndex < lines.length) {
 
-		// Find the query ID
+		// IMPORTANT: The id of the query is not determined by the number
+		// following the ".I" in the file. The number given by the ".I" is
+		// not continuous and does not refers to numbers given in the "cranqrel"
+		// file that gives the list of relevant documents for each query.
 		while(lines[lineIndex].slice(0, 2) != '.I') lineIndex++;
-		var id = parseInt(lines[lineIndex].split(' ')[1]);
+		id++;
 
 		// Find the beginning of the query
 		while(lines[lineIndex].slice(0, 2) != '.W') lineIndex++;
